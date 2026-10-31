@@ -134,6 +134,17 @@
             };
         }
 
+        /* 곡 edit 컨텍스트 메뉴 (곡 삭제 · 곡 즐겨찾기) */
+        const em = $('pl-edit-menu');
+        if (em && em.classList.contains('on')) {
+            st.edit = {
+                r: { x: em.offsetLeft, y: em.offsetTop, w: em.offsetWidth, h: em.offsetHeight },
+                del: txt(em.querySelector('[data-act="del"]')),
+                fav: txt(em.querySelector('.pl-edit-fav-label')),
+                favOn: em.classList.contains('fav-on')
+            };
+        }
+
         /* 이름 입력 다이얼로그 */
         if ($('pl-dialog-overlay') && $('pl-dialog-overlay').classList.contains('on')) {
             const d = $('pl-dialog'), inp = $('pl-dialog-input');
@@ -194,7 +205,7 @@
     }
 
     /* 레이아웃/상태에 실제 영향이 있는 변화만 반응 (재생 진행/가사 하이라이트 등은 무시 → 메인 스레드 부하 0) */
-    const OVERLAYS = '#pl-ctx-menu,#pl-dialog-overlay,#pl-confirm-overlay,#pl-add-modal-overlay';
+    const OVERLAYS = '#pl-ctx-menu,#pl-edit-menu,#pl-dialog-overlay,#pl-confirm-overlay,#pl-add-modal-overlay';
     const HOSTS = '#mob-nav,#bar,.mob-srch-wrap';
     const mo = new MutationObserver(recs => {
         let burst = false, once = false;
@@ -291,6 +302,7 @@
                     }
                     break;
                 }
+                case 'edit': if (typeof plEditAction === 'function') plEditAction(c.a); break;
                 case 'dlg': if (c.a === 'ok') plDialogConfirm(); else plDialogCancel(); break;
                 case 'cfm': if (c.a === 'ok') plConfirmOk(); else plConfirmCancel(); break;
                 case 'add': {
