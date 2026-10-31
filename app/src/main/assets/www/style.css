@@ -5404,3 +5404,165 @@ html.bg-mode *, html.bg-mode *::before, html.bg-mode *::after {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
+
+
+/* ════════════════════════════════════════════════════════
+   PLAYLIST TRACK — EDIT MODE
+   길게 눌러 진입 → 행이 부드럽게 커지며 하이라이트, 옆에 Liquid Glass 컨텍스트 메뉴,
+   끌어서 순서 변경 (다른 행은 transform 으로 순차 이동 → 레이아웃 변동/겹침 없음)
+════════════════════════════════════════════════════════ */
+#pl-track-list { position: relative; }
+
+.pl-track {
+    transition: background .12s, border-color .3s, box-shadow .3s, transform .36s cubic-bezier(.22,.9,.28,1);
+}
+
+.pl-track.pl-track-ed {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+    .pl-track.pl-track-ed img {
+        pointer-events: none;
+        -webkit-user-drag: none;
+    }
+
+/* edit 목록: 모든 행이 --ty/--sc 로만 움직인다 (레이아웃은 그대로) */
+#pl-track-list.edit-on .pl-track {
+    transform: translate3d(0, var(--ty, 0px), 0) scale(var(--sc, 1));
+}
+
+/* edit 상태 행: 살짝 커지고(overshoot 스프링) 하이라이트 */
+.pl-track.editing {
+    --sc: 1.035;
+    position: relative;
+    z-index: 6;
+    touch-action: none;
+    background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+    border-color: rgba(255,255,255,.28);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.24),
+        0 10px 30px rgba(0,0,0,.45),
+        0 0 0 1px var(--acc-dim),
+        0 0 26px var(--acc-dim);
+    transition: transform .46s cubic-bezier(.2,1.15,.35,1), background .25s, border-color .25s, box-shadow .3s;
+}
+
+/* 끌고 있는 행: 더 들어 올려진 느낌, 이웃과 겹치지 않도록 overshoot 없는 곡선 */
+.pl-track.dragging {
+    --sc: 1.05;
+    z-index: 7;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.28),
+        0 16px 38px rgba(0,0,0,.55),
+        0 0 0 1px var(--acc-dim),
+        0 0 32px var(--acc-dim);
+    transition: transform .3s cubic-bezier(.22,.9,.28,1), box-shadow .25s, background .25s;
+}
+
+/* DOM 순서 확정 순간에는 전환을 끈다 */
+#pl-track-list.pl-no-tr .pl-track { transition: none !important; }
+
+/* 곡 삭제: 접히며 사라지고 아래 곡들이 부드럽게 올라온다 */
+.pl-track.removing {
+    overflow: hidden;
+    opacity: 0;
+    height: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0;
+    border-width: 0;
+    pointer-events: none;
+    transform: scale(.94);
+    transition: height .28s cubic-bezier(.22,.9,.28,1), opacity .2s ease, padding .28s cubic-bezier(.22,.9,.28,1), transform .28s cubic-bezier(.22,.9,.28,1);
+}
+
+/* edit 동안 스크롤 잠금 (NP 가 열렸을 때와 동일한 방식 — 스크롤 위치는 유지된다) */
+html.glass-native.pl-editing {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+}
+
+html:not(.glass-native).pl-editing #main { overflow: hidden !important; }
+
+/* ── 편집 컨텍스트 메뉴 → Liquid Glass 박스 (기존 컨텍스트 메뉴와 동일한 재질) ── */
+#pl-edit-menu {
+    position: fixed;
+    z-index: 820;
+    width: 208px;
+    padding: 8px 0;
+    box-sizing: border-box;
+    display: none;
+    isolation: isolate;
+    transform-origin: 85% 0;
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.035));
+    border: 1px solid rgba(255,255,255,.20);
+    border-radius: 26px;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.26),
+        inset 0 -1px 0 rgba(255,255,255,.07),
+        0 14px 34px rgba(0,0,0,.40);
+    -webkit-backdrop-filter: blur(34px) saturate(2.1);
+    backdrop-filter: blur(34px) saturate(2.1);
+}
+
+    #pl-edit-menu.on {
+        display: block;
+        animation: plEditMenuIn .34s cubic-bezier(.22,1.1,.36,1) both;
+    }
+
+@keyframes plEditMenuIn {
+    from { opacity: 0; transform: scale(.9) translateY(-6px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.pl-edit-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 44px;
+    padding: 0 18px;
+    box-sizing: border-box;
+    font-size: 15px;
+    color: var(--t1);
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    transition: background .12s var(--ease), color .12s var(--ease);
+}
+
+    .pl-edit-item:active { background: rgba(255,255,255,.08); }
+    .pl-edit-item svg { flex-shrink: 0; }
+    .pl-edit-item.danger { color: #ff453a; }
+
+#pl-edit-menu.fav-on .pl-edit-item[data-act="fav"] {
+    color: var(--acc);
+}
+
+#pl-edit-menu.fav-on .pl-edit-item[data-act="fav"] svg {
+    fill: currentColor;
+}
+
+.pl-edit-divider {
+    height: 1px;
+    margin: 0 16px;
+    background: rgba(255,255,255,.18);
+}
+
+/* 앱(WebView + Compose): 메뉴의 유리 표면과 컨트롤은 네이티브가 그린다. DOM 은 상태/위치의 원천으로만 남긴다 */
+html.glass-native #pl-edit-menu {
+    opacity: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pl-track, .pl-track.editing, .pl-track.dragging, .pl-track.removing { transition-duration: .01s !important; transition-delay: 0s !important; }
+}
