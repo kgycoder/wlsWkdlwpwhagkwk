@@ -25,7 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
@@ -193,6 +195,56 @@ internal fun ContextMenuGlass(m: CtxState, backdrop: Backdrop, c: GlassControlle
                 .background(Color.White.copy(0.18f)))
             MenuRow(m.newLabel, LocalGlassAccent.current) { c.cmd { put("t", "ctx"); put("new", true) } }
         }
+    }
+}
+
+/** 곡 edit 상태에서 곡 옆에 뜨는 Liquid Glass 컨텍스트 메뉴: 곡 삭제 · 곡 즐겨찾기 (기존 ContextMenuGlass 와 동일한 재질) */
+@Composable
+internal fun EditMenuGlass(m: EditMenuState, backdrop: Backdrop, c: GlassController) {
+    val pop = rememberPopIn()
+    val accent = LocalGlassAccent.current
+    val favColor = if (m.favOn) accent else GlassTheme.Content
+    Box(Modifier.cssRect(m.rect.copy(h = 10f))) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(align = Alignment.Top, unbounded = true)
+                .dialogGlass(backdrop, 26, pop.value, 16f, 32f)
+                .then(NoTouchThrough)
+                .padding(vertical = 8.dp)
+        ) {
+            EditMenuRow(EditTrashIcon, false, GlassTheme.Danger, m.deleteLabel, GlassTheme.Danger) {
+                c.cmd { put("t", "edit"); put("a", "del") }
+            }
+            Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(1.dp).background(Color.White.copy(0.18f)))
+            EditMenuRow(GlassIcons.Fav, m.favOn, favColor, m.favLabel, favColor) {
+                c.cmd { put("t", "edit"); put("a", "fav") }
+            }
+        }
+    }
+}
+
+private val EditTrashIcon: List<Path> by lazy {
+    fun p(d: String): Path = PathParser().parsePathString(d).toPath()
+    listOf(p("M3.5 5.5h13"), p("M7.5 5.5V3.5h5v2"), p("M5 5.5l.9 11h8.2l.9-11"), p("M8.5 9v4.5"), p("M11.5 9v4.5"))
+}
+
+@Composable
+private fun EditMenuRow(
+    icon: List<Path>, filled: Boolean, tint: Color, label: String, textColor: Color, onClick: () -> Unit
+) {
+    Row(
+        Modifier.fillMaxWidth().height(44.dp).tap(onClick = onClick).padding(horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Canvas(Modifier.size(18.dp)) {
+            if (filled) fillIcon(icon[0], 20f, tint)
+            strokeIcon(icon, 20f, tint, 1.7f)
+        }
+        BasicText(
+            label, Modifier.padding(start = 12.dp),
+            style = TextStyle(textColor, 15.sp), maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
